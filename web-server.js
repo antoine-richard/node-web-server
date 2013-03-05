@@ -90,10 +90,10 @@ StaticServlet.prototype.handleRequest = function(req, res) {
   var path = ('./' + req.url.pathname).replace('//','/').replace(/%(..)/g, function(match, hex){
     return String.fromCharCode(parseInt(hex, 16));
   });
-  var jsonCaptures = path.match(/^(.*json)\/(.*)$/i);
-  if (jsonCaptures) {
-    path = jsonCaptures[1];
-    var jsonSubTree = jsonCaptures[2].split('/');
+  var jsonPathCaptures = path.match(/^(.*json)\/(.*)$/i);
+  if (jsonPathCaptures) {
+    path = jsonPathCaptures[1];
+    var jsonSubTree = jsonPathCaptures[2].split('/');
   }
   var parts = path.split('/');
   if (parts[parts.length-1].charAt(0) === '.')
@@ -178,8 +178,23 @@ StaticServlet.prototype.sendJsonSubTree_ = function(req, res, path, jsonSubTree)
       return self.sendError_(req, res, err);
 
     var o = JSON.parse(data);
+
+    if (jsonSubTree[jsonSubTree.length-1] === '$') {
+      var cutTree = jsonSubTree.pop();
+    }
+
     while (jsonSubTree.length) {
       o = o[jsonSubTree.shift()];
+    }
+
+    if (cutTree) {
+      if (o instanceof Array) {
+        for (var i = 0; i < o.length; i++) {
+          self.deleteArrayChildren_(o[i]);
+        }
+      } else {
+        self.deleteArrayChildren_(o);
+      }
     }
 
     res.writeHead(200, {
@@ -189,6 +204,12 @@ StaticServlet.prototype.sendJsonSubTree_ = function(req, res, path, jsonSubTree)
     res.write(JSON.stringify(o));
     res.end();
   });
+};
+
+StaticServlet.prototype.deleteArrayChildren_ = function(o) {
+  for (child in o) {
+    if (o[child] instanceof Array) delete o[child];
+  }
 };
 
 StaticServlet.prototype.sendFile_ = function(req, res, path) {
