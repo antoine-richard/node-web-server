@@ -179,22 +179,22 @@ StaticServlet.prototype.sendJsonSubTree_ = function(req, res, path, jsonSubTree)
 
     var o = JSON.parse(data);
 
+    // testing if we need to cut off child arrays
     if (jsonSubTree[jsonSubTree.length-1] === '$') {
       var cutTree = jsonSubTree.pop();
     }
 
+    // placing ourself in the specified tree node
     while (jsonSubTree.length) {
       o = o[jsonSubTree.shift()];
     }
 
+    // cutting off child arrays
     if (cutTree) {
-      if (o instanceof Array) {
-        for (var i = 0; i < o.length; i++) {
-          self.deleteArrayChildren_(o[i]);
-        }
-      } else {
+      if (o instanceof Array) 
+        o.forEach(self.deleteArrayChildren_);
+      else 
         self.deleteArrayChildren_(o);
-      }
     }
 
     res.writeHead(200, {
@@ -206,9 +206,13 @@ StaticServlet.prototype.sendJsonSubTree_ = function(req, res, path, jsonSubTree)
   });
 };
 
+/**
+ * Delete arrays attributes in the given object
+ */
 StaticServlet.prototype.deleteArrayChildren_ = function(o) {
   for (child in o) {
-    if (o[child] instanceof Array) delete o[child];
+    if (o[child] instanceof Array) 
+      delete o[child];
   }
 };
 
